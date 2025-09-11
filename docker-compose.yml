@@ -1,0 +1,23 @@
+version: '3.8'
+services:
+  products:
+    build: ./products-service
+    container_name: products-service
+    ports:
+      - "5001:80"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  orders:
+    build: ./orders-service
+    container_name: orders-service
+    ports:
+      - "5002:80"
+    environment:
+      - ProductsService__BaseUrl=http://products:80
+    depends_on:
+      products:
+        condition: service_healthy
