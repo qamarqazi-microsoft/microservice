@@ -1,0 +1,52 @@
+name: Build and Push Microservices to ACR
+
+on:
+  workflow_dispatch:
+    inputs:
+      services:
+        description: 'Comma separated list of services to build (or leave blank to build all)'
+        required: false
+        default: ''
+
+jobs:
+  build_and_push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '6.0.x'
+
+      - name: Login to Azure Container Registry
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ secrets.ACR_LOGIN_SERVER }}  # e.g. myregistry.azurecr.io
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Identify microservices
+        id: list_services
+        run: |
+          if [[ -z "${{ github.event.inputs.services }}" ]]; then
+            # No input => build all service dirs in microservice/
+            SERVICES=$(find microservice -maxdepth 1 -type d -printf "%f\n" | tail -n +2)
+          else
+            IFS=',' read -ra SERVICES <<< "${{ github.event.inputs.services }}"
+          fi
+          echo "Services to build: ${SERVICES[@]}"
+          echo "::set-output name=services::${SERVICES[*]}"
+
+      - name: Build & Push each microservice image
+        run: |
+          # split output
+          IFS=' ' read -ra ALL_SERVICES <<< "${{ steps.list_services.outputs.services }}"
+          for svc in "${ALL_SERVICES[@]}"; do
+            echo "Building service: $svc"
+            IMAGE_NAME="${{ secrets.ACR_LOGIN_SERVER }}/${svc}:latest"
+            docker build -t "$IMAGE_NAME" ./microservice/$svc
+            docker push "$IMAGE_NAME"
+          done
