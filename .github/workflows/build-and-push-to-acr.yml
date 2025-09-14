@@ -32,8 +32,8 @@ jobs:
         id: list_services
         run: |
           if [[ -z "${{ github.event.inputs.services }}" ]]; then
-            # No input => build all service dirs in microservice/
-            SERVICES=$(find microservice -maxdepth 1 -type d -printf "%f\n" | tail -n +2)
+            # No input => build all service dirs at root (exclude hidden dirs)
+            SERVICES=$(find . -maxdepth 1 -type d -printf "%f\n" | grep -v '^\.' | grep -v '^\.github$')
           else
             IFS=',' read -ra SERVICES <<< "${{ github.event.inputs.services }}"
           fi
@@ -42,11 +42,10 @@ jobs:
 
       - name: Build & Push each microservice image
         run: |
-          # split output
           IFS=' ' read -ra ALL_SERVICES <<< "${{ steps.list_services.outputs.services }}"
           for svc in "${ALL_SERVICES[@]}"; do
             echo "Building service: $svc"
             IMAGE_NAME="${{ secrets.ACR_LOGIN_SERVER }}/${svc}:latest"
-            docker build -t "$IMAGE_NAME" ./microservice/$svc
+            docker build -t "$IMAGE_NAME" ./$svc
             docker push "$IMAGE_NAME"
           done
