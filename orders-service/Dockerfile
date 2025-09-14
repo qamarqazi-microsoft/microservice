@@ -17,6 +17,6 @@
 
             FROM base AS final
             WORKDIR /app
-            COPY --from=publish /app/publish .
+            COPY --from=publish /app/publish . 
             ENTRYPOINT ["dotnet", "orders-service.dll"]
             
