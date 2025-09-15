@@ -22,7 +22,7 @@ jobs:
 
       - name: Deploy and update images for all services
         run: |
-          kubectl apply -f k8s/orders-service
-          kubectl set image deployment/orders-service orders-service=msacr.azurecr.io/orders-service:latest
-          kubectl apply -f k8s/products-service
-          kubectl set image deployment/products-service products-service=msacr.azurecr.io/products-service:latest
+          kubectl apply -f k8s/orders-service || echo 'Missing k8s/orders-service folder'
+          kubectl set image deployment/orders-service-deployment orders-service=msacr.azurecr.io/orders-service:latest || echo 'Deployment orders-service-deployment not found'
+          kubectl apply -f k8s/products-service || echo 'Missing k8s/products-service folder'
+          kubectl set image deployment/products-service-deployment products-service=msacr.azurecr.io/products-service:latest || echo 'Deployment products-service-deployment not found'
